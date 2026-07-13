@@ -1,0 +1,40 @@
+services:
+  joern:
+    image: ghcr.io/joernio/joern:nightly
+    container_name: joern
+    entrypoint: ["sleep", "infinity"]
+    volumes:
+      - ./scripts/joern:/scripts:ro
+      - work-data:/work
+    restart: unless-stopped
+
+  server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    depends_on:
+      - joern
+    environment:
+      PORT: "8080"
+      JOERN_EXEC_MODE: docker
+      JOERN_CONTAINER_NAME: joern
+      JOERN_SCRIPT: /scripts/flow_all.sc
+      JOERN_TIMEOUT: "900"
+      WORKDIR: /work
+    volumes:
+      - ./scripts/joern:/scripts:ro
+      - work-data:/work
+      - ${DOCKER_SOCK:-/var/run/docker.sock}:/var/run/docker.sock
+    ports:
+      - "8080:8080"
+
+  web:
+    build:
+      context: ./web
+    depends_on:
+      - server
+    ports:
+      - "5173:80"
+
+volumes:
+  work-data:
